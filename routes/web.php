@@ -5,6 +5,18 @@ use Database\Seeders\ProductSeeder;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use App\Models\Product;
+use App\Http\Controllers\WeightController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\LicenseController;  
+use App\Http\Controllers\UserController; 
+use App\Http\Controllers\VehicleController; 
+use Illuminate\Support\Facades\Route;
+
+Route::resource('license', LicenseController::class);
+Route::resource('user', UserController::class);
+Route::resource('vehicle', VehicleController::class);
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -112,11 +124,51 @@ Route::get('query/orm', function () {
     return view('query-test', compact('products'));
 });
 
-Route::get('product/form', function () {
-    // ใส่ไว้กัน bugs
-})->name("product.form");
+// Route::get('product/form', function () {
+//     // ใส่ไว้กัน bugs
+// })->name("product.form");
 
 Route::get('barchart', function () {    
     return view('barchart');
 })->name('barchart');
 
+Route::get('product-index', function () {
+    $products = Product::get();
+    return view('query-test', compact('products'));
+})->name("product.index");
+
+
+Route::get('product-form', function () {    
+    return view('product-form');
+})->name("product.form");
+
+Route::post('/product-submit', function (Request $request) {    
+    $data = $request->validate([
+        'name' => 'required|string|max:255',
+        'description' => 'required|string',
+        'price' => 'required|numeric|min:0',
+        'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    ]);    
+
+    // ตรวจสอบว่ามีการอัปโหลดรูปภาพ
+    if ($request->hasFile('image')) {
+        $imagePath = $request->file('image')->store('uploads', 'public');
+        $url = Storage::url($imagePath);
+        $data["image"] =$url;
+    }
+
+    // บันทึกข้อมูลในฐานข้อมูล
+    
+    Product::create($data); 
+
+    return redirect()->route('product.index')->with('success', 'เพิ่มสินค้าแล้ว!');
+})->name('product.submit');
+
+Route::get('/', [WeightController::class, 'index'])->name('weights.index');
+Route::post('/weights', [WeightController::class, 'store'])->name('weights.store');
+Route::put('/weights/{id}', [WeightController::class, 'update'])->name('weights.update');
+Route::delete('/weights/{id}', [WeightController::class, 'destroy'])->name('weights.destroy');
+
+Route::get('/about-me', function () {
+    return view('about-me');
+});
